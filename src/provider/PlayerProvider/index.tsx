@@ -11,17 +11,25 @@ interface IPlayerContext {
   chromecasts: IChromecast[];
   logMessages: string[];
   addLogMessage: (message: string) => void;
+  videoPath?: string;
+  setVideoPath: (videoPath: string) => void;
 }
+
+const emptyFn = () => {
+  /* */
+};
 
 export const PlayerContext = React.createContext<IPlayerContext>({
   chromecasts: [],
   logMessages: [],
-  addLogMessage: () => {}
+  addLogMessage: emptyFn,
+  setVideoPath: emptyFn
 });
 
 const PlayerProvider = ({ children }: any) => {
   const [chromecasts, setChromecasts] = React.useState<IChromecast[]>([]);
   const [logMessages, setLogMessages] = React.useState<string[]>([]);
+  const [videoPath, rawSetVideoPath] = React.useState<string>();
 
   const addLogMessage = React.useCallback((message: string) => {
     setLogMessages(logMessages => [...logMessages, message]);
@@ -48,12 +56,19 @@ const PlayerProvider = ({ children }: any) => {
     });
   }, []);
 
+  const setVideoPath = React.useCallback((path: string) => {
+    addLogMessage(`Update videopath to ${path}`);
+    rawSetVideoPath(path);
+  }, []);
+
   return (
     <PlayerContext.Provider
       value={{
         chromecasts,
         logMessages,
-        addLogMessage
+        addLogMessage,
+        videoPath,
+        setVideoPath
       }}
     >
       {children}

@@ -1,8 +1,38 @@
 import * as React from "react";
 import { PlayerContext } from "../../../provider/PlayerProvider";
+import { remote } from "electron";
 
 const FormPanel = (): React.ReactElement => {
-  const { chromecasts } = React.useContext(PlayerContext);
+  const { addLogMessage, chromecasts, setVideoPath } = React.useContext(
+    PlayerContext
+  );
+
+  const onVideoButtonClick = React.useCallback(() => {
+    remote.dialog
+      .showOpenDialog({
+        title: "Chromecast supported video files (MP4 / WebM)",
+        filters: [
+          // @todo maybe enable?
+          // {
+          //   name: "Chromecast supported video files (MP4 / WebM)"
+          //   extensions: ["mp4", "webm"]
+          // }
+        ],
+        properties: ["openFile"]
+      })
+      .then(result => {
+        if (!result.canceled && result.filePaths.length) {
+          setVideoPath(result.filePaths[0]);
+        }
+      })
+      .catch(err => {
+        addLogMessage(err.message);
+      });
+  }, []);
+
+  const onSubmit = React.useCallback(e => {
+    console.log(e);
+  }, []);
 
   return (
     <div
@@ -14,11 +44,15 @@ const FormPanel = (): React.ReactElement => {
         overflow: "auto"
       }}
     >
-      <form>
+      <form onSubmit={onSubmit}>
         <ul>
           <li>
             <label htmlFor="video">Video</label>
-            <input type="file" name="video" id="video" />
+            <input
+              type="button"
+              value="Choose File"
+              onClick={onVideoButtonClick}
+            />
           </li>
           <li>
             <label htmlFor="subtitles">Subtitles</label>
