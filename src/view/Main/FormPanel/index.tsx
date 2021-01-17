@@ -1,6 +1,9 @@
 import * as React from "react";
 import { PlayerContext } from "../../../provider/PlayerProvider";
 import { remote } from "electron";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import { Client, DefaultMediaReceiver } from "castv2-client";
 
 const FormPanel = (): React.ReactElement => {
   const {
@@ -46,9 +49,49 @@ const FormPanel = (): React.ReactElement => {
   const onSubmit = React.useCallback(
     (e) => {
       console.log(videoPath, chromecast);
+      if (!chromecast) {
+        throw new Error("No Chromecast");
+      }
       e.preventDefault();
+      const client = new Client();
+      client.connect(chromecast.ip, () => {
+        client.launch(DefaultMediaReceiver, function (err, player) {
+          if (err) {
+            throw err;
+          }
+          player.load(
+            {
+              // Here you can plug an URL to any mp4, webm, mp3 or jpg file with the proper contentType.
+              contentId:
+                "http://commondatastorage.googleapis.com/gtv-videos-bucket/big_buck_bunny_1080p.mp4",
+              contentType: "video/mp4",
+              streamType: "BUFFERED", // or LIVE
+
+              // Title and cover displayed while buffering
+              metadata: {
+                type: 0,
+                metadataType: 0,
+                title: "Big Buck Bunny",
+                images: [
+                  {
+                    url:
+                      "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
+                  },
+                ],
+              },
+            },
+            { autoplay: true },
+            (err: Error, status: any) => {
+              if (err) {
+                throw err;
+              }
+              addLogMessage(JSON.stringify(status));
+            }
+          );
+        });
+      });
     },
-    [chromecast, videoPath]
+    [addLogMessage, chromecast, videoPath]
   );
 
   return (
