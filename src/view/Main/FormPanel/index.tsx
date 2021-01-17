@@ -2,7 +2,7 @@ import * as React from "react";
 
 const FormPanel = (): React.ReactElement => {
     return (
-        <div style={{ border: "1px solid black", margin: 10, padding: 10 }}>
+        <div style={{ flex: 1, border: "1px solid black", margin: 10, padding: 10, overflow: 'auto' }}>
             <form>
                 <ul>
                     <li>
