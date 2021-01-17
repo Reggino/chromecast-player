@@ -5,10 +5,12 @@ import { remote } from "electron";
 const FormPanel = (): React.ReactElement => {
   const {
     addLogMessage,
+    chromecast,
     chromecasts,
+    setChromecast,
     setVideoPath,
     mediaServerPort,
-    videoPath
+    videoPath,
   } = React.useContext(PlayerContext);
 
   const onVideoButtonClick = React.useCallback(() => {
@@ -22,21 +24,32 @@ const FormPanel = (): React.ReactElement => {
           //   extensions: ["mp4", "webm"]
           // }
         ],
-        properties: ["openFile"]
+        properties: ["openFile"],
       })
-      .then(result => {
+      .then((result) => {
         if (!result.canceled && result.filePaths.length) {
           setVideoPath(result.filePaths[0]);
         }
       })
-      .catch(err => {
+      .catch((err) => {
         addLogMessage(err.message);
       });
-  }, []);
+  }, [addLogMessage, setVideoPath]);
 
-  const onSubmit = React.useCallback(e => {
-    console.log(e);
-  }, []);
+  const onChromecastChange = React.useCallback(
+    (e) => {
+      setChromecast(chromecasts[e.target.value]);
+    },
+    [chromecasts, setChromecast]
+  );
+
+  const onSubmit = React.useCallback(
+    (e) => {
+      console.log(videoPath, chromecast);
+      e.preventDefault();
+    },
+    [chromecast, videoPath]
+  );
 
   return (
     <div
@@ -45,7 +58,7 @@ const FormPanel = (): React.ReactElement => {
         border: "1px solid black",
         margin: 10,
         padding: 10,
-        overflow: "auto"
+        overflow: "auto",
       }}
     >
       <form onSubmit={onSubmit}>
@@ -57,7 +70,12 @@ const FormPanel = (): React.ReactElement => {
               value="Choose File"
               onClick={onVideoButtonClick}
             />
-            {videoPath ? <video src={`http://localhost:${mediaServerPort}/video`} controls /> : null}
+            {videoPath ? (
+              <video
+                src={`http://localhost:${mediaServerPort}/video`}
+                controls
+              />
+            ) : null}
           </li>
           <li>
             <label htmlFor="subtitles">Subtitles</label>
@@ -65,12 +83,17 @@ const FormPanel = (): React.ReactElement => {
           </li>
           <li>
             <label htmlFor="chromecast">Chromecast</label>
-            <select name="chromecast" id="chromecast">
+            <select
+              name="chromecast"
+              id="chromecast"
+              onChange={onChromecastChange}
+              value={chromecast?.ip}
+            >
               {chromecasts.length ? (
-                chromecasts.map(chromecast => (
+                chromecasts.map((chromecast, index) => (
                   <option
-                    key={chromecast.ip}
-                    value={chromecast.ip}
+                    key={index}
+                    value={index}
                   >{`${chromecast.name} (${chromecast.type})`}</option>
                 ))
               ) : (
@@ -82,7 +105,7 @@ const FormPanel = (): React.ReactElement => {
         <input
           type="submit"
           value="PLAY"
-          disabled={true}
+          disabled={!videoPath || !chromecast}
           style={{ fontSize: 24, marginLeft: 100, marginTop: 10 }}
         />
       </form>

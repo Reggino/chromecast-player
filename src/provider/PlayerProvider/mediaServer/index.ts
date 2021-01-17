@@ -1,28 +1,11 @@
 import { createReadStream, statSync } from "fs";
 import express from "express";
 import cors from "cors";
-import { networkInterfaces } from "os";
 
 let videoPath = "";
 let subtitlePath = "";
 
 // END OF CONFIG
-
-const nets = networkInterfaces();
-const ipAddresses = Object.values(nets).reduce<string[]>((prev, ips = []) => {
-  ips.forEach(ip => {
-    if (
-      ip.family === "IPv4" &&
-      ip.internal === false &&
-      !ip.address.startsWith("172.17.0")
-    ) {
-      prev.push(ip.address);
-    }
-  });
-  return prev;
-}, []);
-console.log(`Using detected internal IP addresses ${ipAddresses}`);
-
 export const mediaServerApp = express();
 
 mediaServerApp.use(cors());

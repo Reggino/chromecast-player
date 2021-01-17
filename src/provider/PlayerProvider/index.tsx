@@ -2,6 +2,7 @@ import React from "react";
 import bonjour from "bonjour";
 import getPort from "get-port";
 import { mediaServerApp, setMediaServerVideoPath } from "./mediaServer";
+import { networkInterfaces } from "os";
 
 interface IChromecast {
   ip: string;
@@ -29,7 +30,7 @@ export const PlayerContext = React.createContext<IPlayerContext>({
   logMessages: [],
   addLogMessage: emptyFn,
   setChromecast: emptyFn,
-  setVideoPath: emptyFn
+  setVideoPath: emptyFn,
 });
 
 const PlayerProvider = ({ children }: any) => {
@@ -37,15 +38,16 @@ const PlayerProvider = ({ children }: any) => {
   const [chromecasts, setChromecasts] = React.useState<IChromecast[]>([]);
   const [logMessages, setLogMessages] = React.useState<string[]>([]);
   const [videoPath, rawSetVideoPath] = React.useState<string>();
+  const [localIpAddresses, setLocalIpAddresses] = React.useState<string[]>([]);
   const [mediaServerPort, setMediaServerPort] = React.useState<number>();
 
   const addLogMessage = React.useCallback((message: string) => {
-    setLogMessages(logMessages => [...logMessages, message]);
+    setLogMessages((logMessages) => [...logMessages, message]);
   }, []);
 
   React.useEffect(() => {
     addLogMessage("Looking for chromecasts");
-    bonjour().find({ type: "googlecast" }, service => {
+    bonjour().find({ type: "googlecast" }, (service) => {
       addLogMessage(
         `Found chromecast: ${JSON.stringify(
           { ...service, rawTxt: undefined },
@@ -53,39 +55,63 @@ const PlayerProvider = ({ children }: any) => {
           "\t"
         )}`
       );
-      setChromecasts(chromeCasts => [
-        ...chromeCasts,
-        {
-          ip: service.addresses[0],
-          name: service.txt.fn,
-          type: service.txt.md
-        }
-      ]);
+      const newChromecast = {
+        ip: service.addresses[0],
+        name: service.txt.fn,
+        type: service.txt.md,
+      };
+      setChromecasts((chromeCasts) => [...chromeCasts, newChromecast]);
+      setChromecast((oldChromecast) =>
+        oldChromecast ? oldChromecast : newChromecast
+      );
     });
 
-    getPort().then(port => {
+    getPort().then((port) => {
       addLogMessage(`Detected empty port ${port}, starting mediaserver`);
       mediaServerApp.listen(port);
       setMediaServerPort(port);
     });
-  }, []);
 
-  const setVideoPath = React.useCallback((path: string) => {
-    addLogMessage(`Update videopath to ${path}`);
-    setMediaServerVideoPath(path);
-    rawSetVideoPath(path);
-  }, []);
+    const nets = networkInterfaces();
+    const localIpAddresses = Object.values(nets).reduce<string[]>(
+      (prev, ips = []) => {
+        ips.forEach((ip) => {
+          if (
+            ip.family === "IPv4" &&
+            ip.internal === false &&
+            !ip.address.startsWith("172.17.0")
+          ) {
+            prev.push(ip.address);
+          }
+        });
+        return prev;
+      },
+      []
+    );
+    addLogMessage(`Found local IP address: ${localIpAddresses.join(", ")}`);
+    setLocalIpAddresses(localIpAddresses);
+  }, [addLogMessage]);
+
+  const setVideoPath = React.useCallback(
+    (path: string) => {
+      addLogMessage(`Update videopath to ${path}`);
+      setMediaServerVideoPath(path);
+      rawSetVideoPath(path);
+    },
+    [addLogMessage]
+  );
 
   return (
     <PlayerContext.Provider
       value={{
         addLogMessage,
+        chromecast,
         chromecasts,
         logMessages,
         mediaServerPort,
         setChromecast,
         setVideoPath,
-        videoPath
+        videoPath,
       }}
     >
       {children}
