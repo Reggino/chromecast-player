@@ -3,9 +3,13 @@ import { PlayerContext } from "../../../provider/PlayerProvider";
 import { remote } from "electron";
 
 const FormPanel = (): React.ReactElement => {
-  const { addLogMessage, chromecasts, setVideoPath } = React.useContext(
-    PlayerContext
-  );
+  const {
+    addLogMessage,
+    chromecasts,
+    setVideoPath,
+    mediaServerPort,
+    videoPath
+  } = React.useContext(PlayerContext);
 
   const onVideoButtonClick = React.useCallback(() => {
     remote.dialog
@@ -53,6 +57,7 @@ const FormPanel = (): React.ReactElement => {
               value="Choose File"
               onClick={onVideoButtonClick}
             />
+            {videoPath ? <video src={`http://localhost:${mediaServerPort}/video`} controls /> : null}
           </li>
           <li>
             <label htmlFor="subtitles">Subtitles</label>
