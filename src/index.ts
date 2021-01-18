@@ -13,9 +13,10 @@ const createWindow = (): void => {
     height: 600,
     width: 800,
     webPreferences: {
+      contextIsolation: false,
       nodeIntegration: true,
-      enableRemoteModule: true
-    }
+      enableRemoteModule: true,
+    },
   });
 
   // and load the index.html of the app.

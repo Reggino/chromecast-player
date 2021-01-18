@@ -14,6 +14,7 @@ interface IPlayerContext {
   addLogMessage: (message: string) => void;
   chromecast?: IChromecast;
   chromecasts: IChromecast[];
+  localIpAddress?: string;
   logMessages: string[];
   mediaServerPort?: number;
   videoPath?: string;
@@ -101,12 +102,27 @@ const PlayerProvider = ({ children }: any) => {
     [addLogMessage]
   );
 
+  const localIpAddress = React.useMemo(() => {
+    const chromecastIpNibbles = chromecast?.ip.split(".") || [];
+    const matchLength = localIpAddresses.map((ip) => {
+      let nibblePointer = 0;
+      const nibbles = ip.split(".");
+      while (nibbles[nibblePointer] === chromecastIpNibbles[nibblePointer]) {
+        nibblePointer++;
+      }
+      return nibblePointer;
+    });
+    const bestMatchIndex = matchLength.indexOf(Math.max(...matchLength));
+    return localIpAddresses[bestMatchIndex];
+  }, [chromecast, localIpAddresses]);
+
   return (
     <PlayerContext.Provider
       value={{
         addLogMessage,
         chromecast,
         chromecasts,
+        localIpAddress,
         logMessages,
         mediaServerPort,
         setChromecast,

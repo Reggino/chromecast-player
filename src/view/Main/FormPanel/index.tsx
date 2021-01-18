@@ -10,22 +10,22 @@ const FormPanel = (): React.ReactElement => {
     addLogMessage,
     chromecast,
     chromecasts,
+    localIpAddress,
+    mediaServerPort,
     setChromecast,
     setVideoPath,
-    mediaServerPort,
     videoPath,
   } = React.useContext(PlayerContext);
 
   const onVideoButtonClick = React.useCallback(() => {
     remote.dialog
       .showOpenDialog({
-        title: "Chromecast supported video files (MP4 / WebM)",
+        title: "Chromecast supported video files",
         filters: [
-          // @todo maybe enable?
-          // {
-          //   name: "Chromecast supported video files (MP4 / WebM)"
-          //   extensions: ["mp4", "webm"]
-          // }
+          {
+            name: "Chromecast supported media files",
+            extensions: ["mp4", "webm", "mp3", "jpg"],
+          },
         ],
         properties: ["openFile"],
       })
@@ -55,30 +55,29 @@ const FormPanel = (): React.ReactElement => {
       e.preventDefault();
       const client = new Client();
       client.connect(chromecast.ip, () => {
-        client.launch(DefaultMediaReceiver, function (err, player) {
+        client.launch(DefaultMediaReceiver, (err: Error, player: any) => {
           if (err) {
             throw err;
           }
           player.load(
             {
               // Here you can plug an URL to any mp4, webm, mp3 or jpg file with the proper contentType.
-              contentId:
-                "http://commondatastorage.googleapis.com/gtv-videos-bucket/big_buck_bunny_1080p.mp4",
-              contentType: "video/mp4",
-              streamType: "BUFFERED", // or LIVE
-
-              // Title and cover displayed while buffering
-              metadata: {
-                type: 0,
-                metadataType: 0,
-                title: "Big Buck Bunny",
-                images: [
-                  {
-                    url:
-                      "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
-                  },
-                ],
-              },
+              contentId: `http://${localIpAddress}:${mediaServerPort}/video`,
+              // contentType: "video/mp4",
+              // streamType: "BUFFERED", // or LIVE
+              //
+              // // Title and cover displayed while buffering
+              // metadata: {
+              //   type: 0,
+              //   metadataType: 0,
+              //   title: "Big Buck Bunny",
+              //   images: [
+              //     {
+              //       url:
+              //         "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
+              //     },
+              //   ],
+              // },
             },
             { autoplay: true },
             (err: Error, status: any) => {
