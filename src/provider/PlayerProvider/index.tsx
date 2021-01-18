@@ -18,7 +18,7 @@ interface IPlayerContext {
   logMessages: string[];
   mediaServerPort?: number;
   videoPath?: string;
-  setChromecast: (chromecast: IChromecast) => void;
+  setChromecast: (chromecast?: IChromecast) => void;
   setVideoPath: (videoPath: string) => void;
 }
 

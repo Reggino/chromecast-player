@@ -21,7 +21,7 @@ const FormPanel = (): React.ReactElement => {
         filters: [
           {
             name: "Chromecast supported media files",
-            extensions: ["mp4", "webm", "mp3", "jpg"],
+            extensions: ["mp4", "webm"],
           },
         ],
         properties: ["openFile"],
@@ -38,7 +38,9 @@ const FormPanel = (): React.ReactElement => {
 
   const onChromecastChange = React.useCallback(
     (e) => {
-      setChromecast(chromecasts[e.target.value]);
+      setChromecast(
+        chromecasts.find((chromecast) => chromecast.ip === e.target.value)
+      );
     },
     [chromecasts, setChromecast]
   );
@@ -55,8 +57,8 @@ const FormPanel = (): React.ReactElement => {
       ipcRenderer.send("start", chromecast, {
         // Here you can plug an URL to any mp4, webm, mp3 or jpg file with the proper contentType.
         contentId: `http://${localIpAddress}:${mediaServerPort}/video`,
-        // contentType: "video/mp4",
-        // streamType: "BUFFERED", // or LIVE
+        contentType: videoPath?.match(/\.mp4$/i) ? "video/mp4" : "video/webm",
+        streamType: "BUFFERED", // or LIVE
         //
         // // Title and cover displayed while buffering
         // metadata: {
@@ -72,7 +74,7 @@ const FormPanel = (): React.ReactElement => {
         // },
       });
     },
-    [addLogMessage, chromecast, localIpAddress, mediaServerPort]
+    [addLogMessage, chromecast, localIpAddress, mediaServerPort, videoPath]
   );
 
   return (
@@ -116,7 +118,7 @@ const FormPanel = (): React.ReactElement => {
               {chromecasts.length ? (
                 chromecasts.map((chromecast, index) => (
                   <option
-                    key={index}
+                    key={chromecast.ip}
                     value={index}
                   >{`${chromecast.name} (${chromecast.type})`}</option>
                 ))
