@@ -1,9 +1,6 @@
 import * as React from "react";
 import { PlayerContext } from "../../../provider/PlayerProvider";
-import { remote } from "electron";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import { Client, DefaultMediaReceiver } from "castv2-client";
+import { remote, ipcRenderer } from "electron";
 
 const FormPanel = (): React.ReactElement => {
   const {
@@ -48,49 +45,34 @@ const FormPanel = (): React.ReactElement => {
 
   const onSubmit = React.useCallback(
     (e) => {
-      console.log(videoPath, chromecast);
       if (!chromecast) {
         throw new Error("No Chromecast");
       }
       e.preventDefault();
-      const client = new Client();
-      client.connect(chromecast.ip, () => {
-        client.launch(DefaultMediaReceiver, (err: Error, player: any) => {
-          if (err) {
-            throw err;
-          }
-          player.load(
-            {
-              // Here you can plug an URL to any mp4, webm, mp3 or jpg file with the proper contentType.
-              contentId: `http://${localIpAddress}:${mediaServerPort}/video`,
-              // contentType: "video/mp4",
-              // streamType: "BUFFERED", // or LIVE
-              //
-              // // Title and cover displayed while buffering
-              // metadata: {
-              //   type: 0,
-              //   metadataType: 0,
-              //   title: "Big Buck Bunny",
-              //   images: [
-              //     {
-              //       url:
-              //         "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
-              //     },
-              //   ],
-              // },
-            },
-            { autoplay: true },
-            (err: Error, status: any) => {
-              if (err) {
-                throw err;
-              }
-              addLogMessage(JSON.stringify(status));
-            }
-          );
-        });
+      ipcRenderer.once("start-response", (status) => {
+        addLogMessage(JSON.stringify(status));
+      });
+      ipcRenderer.send("start", chromecast, {
+        // Here you can plug an URL to any mp4, webm, mp3 or jpg file with the proper contentType.
+        contentId: `http://${localIpAddress}:${mediaServerPort}/video`,
+        // contentType: "video/mp4",
+        // streamType: "BUFFERED", // or LIVE
+        //
+        // // Title and cover displayed while buffering
+        // metadata: {
+        //   type: 0,
+        //   metadataType: 0,
+        //   title: "Big Buck Bunny",
+        //   images: [
+        //     {
+        //       url:
+        //         "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
+        //     },
+        //   ],
+        // },
       });
     },
-    [addLogMessage, chromecast, videoPath]
+    [addLogMessage, chromecast, localIpAddress, mediaServerPort]
   );
 
   return (

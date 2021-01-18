@@ -1,4 +1,9 @@
-import { app, BrowserWindow } from "electron";
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference
+/// <reference path="../types/castv2-client.d.ts" />
+
+import { app, BrowserWindow, ipcMain } from "electron";
+import { Client, DefaultMediaReceiver } from "castv2-client";
+
 declare const MAIN_WINDOW_WEBPACK_ENTRY: any;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -48,5 +53,20 @@ app.on("activate", () => {
   }
 });
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
+ipcMain.on("start", function (event, chromecast, job) {
+  console.log(chromecast, job);
+  const client = new Client();
+  client.connect(chromecast.ip, () => {
+    client.launch(DefaultMediaReceiver, (err: Error, player: any) => {
+      if (err) {
+        throw err;
+      }
+      player.load(job, { autoplay: true }, (err: Error, status: any) => {
+        if (err) {
+          throw err;
+        }
+        ipcMain.emit("start-response", status);
+      });
+    });
+  });
+});
