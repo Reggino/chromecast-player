@@ -50,29 +50,30 @@ const FormPanel = (): React.ReactElement => {
       if (!chromecast) {
         throw new Error("No Chromecast");
       }
+      if (!videoPath) {
+        throw new Error("No Videopath");
+      }
       e.preventDefault();
-      ipcRenderer.once("start-response", (status) => {
-        addLogMessage(JSON.stringify(status));
-      });
-      ipcRenderer.send("start", chromecast, {
-        // Here you can plug an URL to any mp4, webm, mp3 or jpg file with the proper contentType.
-        contentId: `http://${localIpAddress}:${mediaServerPort}/video`,
-        contentType: videoPath?.match(/\.mp4$/i) ? "video/mp4" : "video/webm",
-        streamType: "BUFFERED", // or LIVE
-        //
-        // // Title and cover displayed while buffering
-        // metadata: {
-        //   type: 0,
-        //   metadataType: 0,
-        //   title: "Big Buck Bunny",
-        //   images: [
-        //     {
-        //       url:
-        //         "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
-        //     },
-        //   ],
-        // },
-      });
+      ipcRenderer
+        .invoke("start", chromecast, {
+          // Here you can plug an URL to any mp4, webm, mp3 or jpg file with the proper contentType.
+          contentId: `http://${localIpAddress}:${mediaServerPort}/video`,
+          contentType: videoPath.match(/\.mp4$/i) ? "video/mp4" : "video/webm",
+          streamType: "BUFFERED", // or LIVE
+          // // Title and cover displayed while buffering
+          metadata: {
+            type: 0,
+            metadataType: 0,
+            title: videoPath.split(/[/\\]/).pop(),
+            //   images: [
+            //     {
+            //       url:
+            //         "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
+            //     },
+            //   ],
+          },
+        })
+        .then((status) => addLogMessage(JSON.stringify(status, null, "\t")));
     },
     [addLogMessage, chromecast, localIpAddress, mediaServerPort, videoPath]
   );

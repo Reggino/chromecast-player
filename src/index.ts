@@ -53,19 +53,30 @@ app.on("activate", () => {
   }
 });
 
-ipcMain.on("start", function (event, chromecast, job) {
+ipcMain.handle("start", function (event, chromecast, job) {
   console.log(chromecast, job);
-  const client = new Client();
-  client.connect(chromecast.ip, () => {
-    client.launch(DefaultMediaReceiver, (err: Error, player: any) => {
+  return new Promise((resolve, reject) => {
+    const client = new Client();
+    client.connect(chromecast.ip, (err: any) => {
       if (err) {
-        throw err;
+        reject(err);
+        return;
       }
-      player.load(job, { autoplay: true }, (err: Error, status: any) => {
+      console.log("Chomecast connected, launching DefaultMediaReceiver");
+      client.launch(DefaultMediaReceiver, (err: Error, player: any) => {
         if (err) {
-          throw err;
+          reject(err);
+          return;
         }
-        ipcMain.emit("start-response", status);
+        console.log("Player launched, starting movie");
+        player.load(job, { autoplay: true }, (err: Error, status: any) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          console.log("Movie started, sending feedback to renderProc");
+          resolve(status);
+        });
       });
     });
   });
