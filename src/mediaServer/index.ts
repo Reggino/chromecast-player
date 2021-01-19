@@ -10,11 +10,11 @@ export const mediaServerApp = express();
 
 mediaServerApp.use(cors());
 
-mediaServerApp.get("/subtitles", function(req, res) {
+mediaServerApp.get("/subtitles", function (req, res) {
   res.setHeader("Content-Type", "text/vtt");
   res.sendFile(subtitlePath);
 });
-mediaServerApp.get("/video", function(req, res) {
+mediaServerApp.get("/video", function (req, res) {
   const { range = "" } = req.headers;
   if (!range) {
     res.status(400).send("Requires Range header");
@@ -28,7 +28,7 @@ mediaServerApp.get("/video", function(req, res) {
     "Content-Range": `bytes ${start}-${end}/${videoSize}`,
     "Accept-Ranges": "bytes",
     "Content-Length": contentLength,
-    "Content-Type": "video/mp4"
+    "Content-Type": "video/mp4",
   };
   res.writeHead(206, headers);
   const videoStream = createReadStream(videoPath, { start, end });

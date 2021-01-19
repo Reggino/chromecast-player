@@ -2,25 +2,36 @@ import * as React from "react";
 import { PlayerContext } from "../../../provider/PlayerProvider";
 import { remote, ipcRenderer } from "electron";
 
+// chrome.cast.media.Media
+// https://developers.google.com/cast/docs/reference/chrome/chrome.cast.media#.PlayerState
+
+interface IMedia {
+  playerState: "IDLE" | "PLAYING" | "PAUSED" | "BUFFERING";
+}
+
 const FormPanel = (): React.ReactElement => {
   const {
     addLogMessage,
     chromecast,
     chromecasts,
-    localIpAddress,
-    mediaServerPort,
     setChromecast,
     setVideoPath,
+    setSubtitlesPath,
+    subtitlesPath,
     videoPath,
   } = React.useContext(PlayerContext);
+
+  const [media, setMedia] = React.useState<IMedia>({
+    playerState: "IDLE",
+  });
 
   const onVideoButtonClick = React.useCallback(() => {
     remote.dialog
       .showOpenDialog({
-        title: "Chromecast supported video files",
+        title: "Chromecast supported video files (.mp4 / .webm)",
         filters: [
           {
-            name: "Chromecast supported media files",
+            name: "Chromecast supported video files (.mp4 / .webm)",
             extensions: ["mp4", "webm"],
           },
         ],
@@ -35,6 +46,28 @@ const FormPanel = (): React.ReactElement => {
         addLogMessage(err.message);
       });
   }, [addLogMessage, setVideoPath]);
+
+  const onSubtitlesButtonClick = React.useCallback(() => {
+    remote.dialog
+      .showOpenDialog({
+        title: "Chromecast supported subtitle files  (.srt / .vtt)",
+        filters: [
+          {
+            name: "Chromecast supported subtitle files  (.srt / .vtt)",
+            extensions: ["srt", "vtt"],
+          },
+        ],
+        properties: ["openFile"],
+      })
+      .then((result) => {
+        if (!result.canceled && result.filePaths.length) {
+          setSubtitlesPath(result.filePaths[0]);
+        }
+      })
+      .catch((err) => {
+        addLogMessage(err.message);
+      });
+  }, [addLogMessage, setSubtitlesPath]);
 
   const onChromecastChange = React.useCallback(
     (e) => {
@@ -53,30 +86,19 @@ const FormPanel = (): React.ReactElement => {
       if (!videoPath) {
         throw new Error("No Videopath");
       }
+
+      setMedia({ playerState: "BUFFERING" });
       e.preventDefault();
       ipcRenderer
-        .invoke("start", chromecast, {
-          // Here you can plug an URL to any mp4, webm, mp3 or jpg file with the proper contentType.
-          contentId: `http://${localIpAddress}:${mediaServerPort}/video`,
-          contentType: videoPath.match(/\.mp4$/i) ? "video/mp4" : "video/webm",
-          streamType: "BUFFERED", // or LIVE
-          // // Title and cover displayed while buffering
-          metadata: {
-            type: 0,
-            metadataType: 0,
-            title: videoPath.split(/[/\\]/).pop(),
-            //   images: [
-            //     {
-            //       url:
-            //         "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
-            //     },
-            //   ],
-          },
-        })
-        .then((status) => addLogMessage(JSON.stringify(status, null, "\t")));
+        .invoke("startVideo", chromecast, videoPath, subtitlesPath)
+        .then((media) => {
+          setMedia(media);
+          addLogMessage(JSON.stringify(media, null, "\t"));
+        });
     },
-    [addLogMessage, chromecast, localIpAddress, mediaServerPort, videoPath]
+    [addLogMessage, chromecast, subtitlesPath, videoPath]
   );
+  const isIdle = media.playerState === "IDLE";
 
   return (
     <div
@@ -96,17 +118,32 @@ const FormPanel = (): React.ReactElement => {
               type="button"
               value="Choose File"
               onClick={onVideoButtonClick}
+              disabled={!isIdle}
             />
-            {videoPath ? (
-              <video
-                src={`http://localhost:${mediaServerPort}/video`}
-                controls
-              />
-            ) : null}
+            <div>
+              <small>Supports: .mp4 / .webm</small>
+            </div>
+            {/*{videoPath && isIdle ? (*/}
+            {/*  <fieldset>*/}
+            {/*    <legend>Preview</legend>*/}
+            {/*    <video*/}
+            {/*      src={`http://localhost:${mediaServerPort}/video?${videoPath}`}*/}
+            {/*      controls*/}
+            {/*    />*/}
+            {/*  </fieldset>*/}
+            {/*) : null}*/}
           </li>
           <li>
             <label htmlFor="subtitles">Subtitles</label>
-            <input type="file" name="subtitles" id="subtitles" />
+            <input
+              type="button"
+              value="Choose File"
+              onClick={onSubtitlesButtonClick}
+              disabled={!isIdle}
+            />
+            <div>
+              <small>Supports: .srt / .vtt</small>
+            </div>
           </li>
           <li>
             <label htmlFor="chromecast">Chromecast</label>
@@ -115,6 +152,7 @@ const FormPanel = (): React.ReactElement => {
               id="chromecast"
               onChange={onChromecastChange}
               value={chromecast?.ip}
+              disabled={!isIdle}
             >
               {chromecasts.length ? (
                 chromecasts.map((chromecast, index) => (
@@ -131,7 +169,7 @@ const FormPanel = (): React.ReactElement => {
         </ul>
         <input
           type="submit"
-          value="PLAY"
+          value={isIdle ? "PLAY" : "STOP"}
           disabled={!videoPath || !chromecast}
           style={{ fontSize: 24, marginLeft: 100, marginTop: 10 }}
         />
