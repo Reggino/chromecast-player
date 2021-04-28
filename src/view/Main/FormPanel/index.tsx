@@ -158,7 +158,7 @@ const FormPanel = (): React.ReactElement => {
                 chromecasts.map((chromecast, index) => (
                   <option
                     key={chromecast.ip}
-                    value={index}
+                    value={chromecast.ip}
                   >{`${chromecast.name} (${chromecast.type})`}</option>
                 ))
               ) : (
